@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
@@ -9,19 +10,19 @@ export async function connectDB(): Promise<typeof mongoose> {
     return mongoose;
   }
 
-  const explicitUri = process.env.MONGODB_URI;
+  const explicitUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/linkpulse';
 
   if (explicitUri) {
     try {
-      console.log(`Connecting to MongoDB at configured MONGODB_URI...`);
+      console.log(`Connecting to MongoDB database at ${explicitUri}...`);
       await mongoose.connect(explicitUri, {
         serverSelectionTimeoutMS: 5000,
       });
       isConnected = true;
-      console.log(`✅ Connected to MongoDB Atlas/external database: ${mongoose.connection.host}`);
+      console.log(`✅ Connected to MongoDB database: ${mongoose.connection.host}:${mongoose.connection.port || 27017} (${mongoose.connection.name})`);
       return mongoose;
     } catch (err: any) {
-      console.warn(`⚠️ Failed to connect to explicit MONGODB_URI: ${err.message}. Initializing embedded MongoDB engine...`);
+      console.warn(`⚠️ Failed to connect to ${explicitUri}: ${err.message}. Initializing embedded MongoDB engine...`);
     }
   }
 
@@ -68,6 +69,6 @@ export function getDbStatus() {
     host: mongoose.connection.host || 'embedded-memory-server',
     port: mongoose.connection.port || 27017,
     name: mongoose.connection.name || 'linkpulse',
-    isEmbedded: !process.env.MONGODB_URI,
+    isEmbedded: Boolean(mongoMemoryServer),
   };
 }
