@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import type { Response } from 'express';
 import { AuthRequest } from '../middleware/auth.ts';
 import { Link, ILink } from '../models/index.ts';
 import { RedirectService, RedirectClientContext } from '../services/redirectService.ts';

@@ -1,0 +1,15 @@
+{
+  "name": "linkpulse-workspace",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "LinkPulse-main"
+  ],
+  "scripts": {
+    "dev": "npm --prefix LinkPulse-main run dev",
+    "start": "npm --prefix LinkPulse-main run start",
+    "build": "npm --prefix LinkPulse-main run build",
+    "test": "npm --prefix LinkPulse-main run test",
+    "lint": "npm --prefix LinkPulse-main run lint"
+  }
+}

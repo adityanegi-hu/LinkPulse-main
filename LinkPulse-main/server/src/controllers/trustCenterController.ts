@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { DomainBlocklist, AbuseReport, AuditLog, Link } from '../models/index.ts';
 import { AuthRequest } from '../middleware/auth.ts';
 import { SecurityService } from '../services/securityService.ts';

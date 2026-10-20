@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { BioPage, User } from '../models/index.ts';
 import { AuthRequest } from '../middleware/auth.ts';
 

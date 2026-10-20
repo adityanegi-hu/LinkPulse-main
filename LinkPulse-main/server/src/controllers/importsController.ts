@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import type { Request, Response } from 'express';
 import crypto from 'crypto';
 import { Link, QrCode } from '../models/index.ts';
 import { AuthRequest } from '../middleware/auth.ts';
@@ -15,9 +15,10 @@ function generateShortCode(length = 6): string {
 }
 
 export class ImportsController {
-  public static async processBulkImport(req: AuthRequest, res: Response) {
-    const { rows } = req.body;
-    const userId = req.user!._id;
+  public static async processBulkImport(req: Request, res: Response) {
+    const authReq = req as AuthRequest;
+    const { rows } = authReq.body;
+    const userId = authReq.user!._id;
 
     if (!Array.isArray(rows) || rows.length === 0) {
       return res.status(400).json({ error: 'Array of CSV rows is required.' });

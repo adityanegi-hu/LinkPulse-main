@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import type { Response } from 'express';
 import { User, Link, DomainBlocklist, ClickEvent, AuditLog } from '../models/index.ts';
 import { AuthRequest } from '../middleware/auth.ts';
 

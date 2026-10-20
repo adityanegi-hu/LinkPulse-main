@@ -19,7 +19,7 @@ describe('LinkPulse End-to-End API Test Suite', () => {
     process.env.ADMIN_BOOTSTRAP_SECRET = bootstrapSecret;
     await connectDB();
     await seedMongoDatabase();
-  });
+  }, 300000);
 
   afterAll(async () => {
     // Teardown

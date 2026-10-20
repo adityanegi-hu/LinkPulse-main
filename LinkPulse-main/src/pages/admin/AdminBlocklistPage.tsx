@@ -43,8 +43,8 @@ export function AdminBlocklistPage() {
       setNewDomain('');
       setNewReason('');
       success(`Domain "${entry.domain}" added to safety blocklist`);
-    } catch {
-      toastError('Failed to add domain to blocklist');
+    } catch (err: any) {
+      toastError(err?.message || 'Failed to add domain to blocklist');
     }
   }
 
