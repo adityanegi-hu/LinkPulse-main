@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { UAParser } from 'ua-parser-js';
-import { Link, ClickEvent, DomainBlocklist, ILink } from '../models/index.ts';
+import { Link, ClickEvent, DomainBlocklist, type ILink } from '../models/index.ts';
 
 export interface RedirectClientContext {
   userAgent: string;

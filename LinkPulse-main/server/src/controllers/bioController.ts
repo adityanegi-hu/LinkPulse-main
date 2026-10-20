@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { BioPage, User } from '../models/index.ts';
-import { AuthRequest } from '../middleware/auth.ts';
+import type { AuthRequest } from '../middleware/auth.ts';
 
 export class BioController {
   /**

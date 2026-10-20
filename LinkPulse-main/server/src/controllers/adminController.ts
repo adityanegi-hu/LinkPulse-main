@@ -1,6 +1,6 @@
 import type { Response } from 'express';
 import { User, Link, DomainBlocklist, ClickEvent, AuditLog } from '../models/index.ts';
-import { AuthRequest } from '../middleware/auth.ts';
+import type { AuthRequest } from '../middleware/auth.ts';
 
 export class AdminController {
   public static async getOverview(req: AuthRequest, res: Response) {

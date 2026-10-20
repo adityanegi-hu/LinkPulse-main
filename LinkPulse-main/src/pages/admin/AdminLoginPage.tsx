@@ -32,7 +32,12 @@ export function AdminLoginPage() {
   }
 
   function validateEmailOnBlur() {
-    const res = EmailSchema.safeParse(email);
+    let clean = email.trim().toLowerCase();
+    if (clean === 'demo.admin' || clean === 'demoadmin' || clean === 'admin') {
+      setEmail('demo.admin@linkpulse.test');
+      clean = 'demo.admin@linkpulse.test';
+    }
+    const res = EmailSchema.safeParse(clean);
     if (!res.success) {
       setErrors((prev) => ({ ...prev, email: res.error.issues[0].message }));
     } else {
@@ -60,7 +65,13 @@ export function AdminLoginPage() {
     e.preventDefault();
     setErrors({});
 
-    const emailRes = EmailSchema.safeParse(email);
+    let candidateEmail = email.trim().toLowerCase();
+    if (candidateEmail === 'demo.admin' || candidateEmail === 'demoadmin' || candidateEmail === 'admin') {
+      candidateEmail = 'demo.admin@linkpulse.test';
+      setEmail('demo.admin@linkpulse.test');
+    }
+
+    const emailRes = EmailSchema.safeParse(candidateEmail);
     const passOk = Boolean(password && password.length >= 1);
 
     const validationMap: typeof errors = {};

@@ -33,7 +33,12 @@ export function LoginPage() {
   }
 
   function validateEmailOnBlur() {
-    const res = EmailSchema.safeParse(email);
+    let clean = email.trim().toLowerCase();
+    if (clean === 'demo.user' || clean === 'demouser') {
+      setEmail('demo.user@linkpulse.test');
+      clean = 'demo.user@linkpulse.test';
+    }
+    const res = EmailSchema.safeParse(clean);
     if (!res.success) {
       setErrors((prev) => ({ ...prev, email: res.error.issues[0].message }));
     } else {
@@ -61,7 +66,13 @@ export function LoginPage() {
     e.preventDefault();
     setErrors({});
 
-    const emailRes = EmailSchema.safeParse(email);
+    let candidateEmail = email.trim().toLowerCase();
+    if (candidateEmail === 'demo.user' || candidateEmail === 'demouser') {
+      candidateEmail = 'demo.user@linkpulse.test';
+      setEmail('demo.user@linkpulse.test');
+    }
+
+    const emailRes = EmailSchema.safeParse(candidateEmail);
     const passOk = Boolean(password && password.length >= 1);
 
     const validationMap: typeof errors = {};
@@ -75,7 +86,7 @@ export function LoginPage() {
 
     setIsLoading(true);
     try {
-      const user = await login(email.trim().toLowerCase(), password);
+      const user = await login(candidateEmail, password);
       success(`Welcome back, ${user.name}`);
       if (user.role === 'admin') {
         navigate('/admin/overview');

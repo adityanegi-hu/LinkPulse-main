@@ -1,5 +1,5 @@
 import type { Response } from 'express';
-import { AuthRequest } from '../middleware/auth.ts';
+import type { AuthRequest } from '../middleware/auth.ts';
 import { AnalyticsService } from '../services/analyticsService.ts';
 import { Link, ClickEvent } from '../models/index.ts';
 

@@ -2,8 +2,8 @@ import type { Response } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
-import { Link, QrCode, ClickEvent, AuditLog, ILink } from '../models/index.ts';
-import { AuthRequest } from '../middleware/auth.ts';
+import { Link, QrCode, ClickEvent, AuditLog, type ILink } from '../models/index.ts';
+import type { AuthRequest } from '../middleware/auth.ts';
 import { SecurityService } from '../services/securityService.ts';
 
 function generateShortCode(length = 6): string {

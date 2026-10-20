@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import crypto from 'crypto';
 import { Link, QrCode } from '../models/index.ts';
-import { AuthRequest } from '../middleware/auth.ts';
+import type { AuthRequest } from '../middleware/auth.ts';
 import { SecurityService } from '../services/securityService.ts';
 
 function generateShortCode(length = 6): string {

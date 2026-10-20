@@ -1,6 +1,6 @@
 import type { Response } from 'express';
 import { Link, ClickEvent } from '../models/index.ts';
-import { AuthRequest } from '../middleware/auth.ts';
+import type { AuthRequest } from '../middleware/auth.ts';
 
 export class ExperimentsController {
   public static async getExperiments(req: AuthRequest, res: Response) {

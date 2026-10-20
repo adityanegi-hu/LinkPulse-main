@@ -1,7 +1,7 @@
 import type { Response } from 'express';
 import mongoose from 'mongoose';
 import { Campaign, Link, ClickEvent } from '../models/index.ts';
-import { AuthRequest } from '../middleware/auth.ts';
+import type { AuthRequest } from '../middleware/auth.ts';
 
 export class CampaignsController {
   public static async getCampaigns(req: AuthRequest, res: Response) {

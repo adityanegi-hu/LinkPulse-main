@@ -1,6 +1,6 @@
 import type { Response } from 'express';
 import { Link, ClickEvent, AuditLog } from '../models/index.ts';
-import { AuthRequest } from '../middleware/auth.ts';
+import type { AuthRequest } from '../middleware/auth.ts';
 
 export class LifecycleController {
   public static async getSummary(req: AuthRequest, res: Response) {

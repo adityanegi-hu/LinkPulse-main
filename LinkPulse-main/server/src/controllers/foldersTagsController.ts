@@ -1,6 +1,6 @@
 import type { Response } from 'express';
 import { Folder, Tag, Link } from '../models/index.ts';
-import { AuthRequest } from '../middleware/auth.ts';
+import type { AuthRequest } from '../middleware/auth.ts';
 
 export class FoldersTagsController {
   // Folders

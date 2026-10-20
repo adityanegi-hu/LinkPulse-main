@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { DomainBlocklist, AbuseReport, AuditLog, Link } from '../models/index.ts';
-import { AuthRequest } from '../middleware/auth.ts';
+import type { AuthRequest } from '../middleware/auth.ts';
 import { SecurityService } from '../services/securityService.ts';
 
 export class TrustCenterController {

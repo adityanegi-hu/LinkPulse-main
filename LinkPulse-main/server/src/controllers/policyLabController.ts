@@ -1,7 +1,7 @@
 import type { Response } from 'express';
-import { AuthRequest } from '../middleware/auth.ts';
-import { Link, ILink } from '../models/index.ts';
-import { RedirectService, RedirectClientContext } from '../services/redirectService.ts';
+import type { AuthRequest } from '../middleware/auth.ts';
+import { Link, type ILink } from '../models/index.ts';
+import { RedirectService, type RedirectClientContext } from '../services/redirectService.ts';
 
 export class PolicyLabController {
   /**
