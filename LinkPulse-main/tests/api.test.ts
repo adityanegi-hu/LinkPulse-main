@@ -542,11 +542,12 @@ describe('LinkPulse End-to-End API Test Suite', () => {
     });
 
     it('blocks links when domain is added to blocklist by admin', async () => {
+      const testDomain = `malicious-${Date.now()}.xyz`;
       const blockRes = await request(app)
         .post('/api/v1/admin/blocklist')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          domain: 'malicious-domain.xyz',
+          domain: testDomain,
           reason: 'Malware distribution',
         });
       expect(blockRes.status).toBe(201);
@@ -556,7 +557,7 @@ describe('LinkPulse End-to-End API Test Suite', () => {
         .post('/api/v1/links')
         .set('Authorization', `Bearer ${userToken}`)
         .send({
-          destinationUrl: 'https://malicious-domain.xyz/payload',
+          destinationUrl: `https://${testDomain}/payload`,
           title: 'Dangerous Link',
         });
       expect(linkRes.status).toBe(400);

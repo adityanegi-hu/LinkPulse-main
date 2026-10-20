@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import type { MongoMemoryServer } from 'mongodb-memory-server';
 
 let mongoMemoryServer: MongoMemoryServer | null = null;
 let isConnected = false;
@@ -29,7 +29,8 @@ export async function connectDB(): Promise<typeof mongoose> {
   // Fallback to high-performance embedded MongoMemoryServer
   if (!mongoMemoryServer) {
     console.log('⚡ Starting high-performance embedded MongoDB server...');
-    mongoMemoryServer = await MongoMemoryServer.create({
+    const { MongoMemoryServer: MMS } = await import('mongodb-memory-server');
+    mongoMemoryServer = await MMS.create({
       instance: {
         dbName: 'linkpulse',
       },
