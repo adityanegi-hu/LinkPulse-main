@@ -5,14 +5,11 @@ import {
   CheckCircle2,
   AlertTriangle,
   Lock,
-  Clock,
-  Ban,
   Smartphone,
   Laptop,
   Tablet,
   Bot,
   ExternalLink,
-  ShieldCheck,
   RefreshCw,
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
@@ -24,7 +21,6 @@ import { Button } from '../components/ui/Button';
 import { Select } from '../components/ui/Select';
 import { Input } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
-import { getBaseShortUrl } from '../lib/utils';
 
 export function PolicyLabPage() {
   const { user } = useAuthStore();
@@ -58,7 +54,7 @@ export function PolicyLabPage() {
 
   const activeLink = links.find((l) => l.id === selectedLinkId);
 
-  async function handleRunSimulation() {
+  const handleRunSimulation = async () => {
     if (!selectedLinkId && !activeLink) return;
     setIsSimulating(true);
 
@@ -79,7 +75,7 @@ export function PolicyLabPage() {
     } finally {
       setIsSimulating(false);
     }
-  }
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -209,7 +205,7 @@ export function PolicyLabPage() {
               ]}
             />
 
-            {/* Simulated Password Input */}
+            {/* Password input */}
             <Input
               label="Simulated Password Attempt"
               type="password"
@@ -285,7 +281,7 @@ export function PolicyLabPage() {
           </Card>
         </div>
 
-        {/* Right Column: Execution Decision & Trace */}
+        {/* Right Column: Results & Trace */}
         <div className="lg:col-span-7 space-y-6">
           <Card className="p-6 space-y-5">
             <h2 className="text-sm font-semibold text-neutral-900 dark:text-white border-b border-neutral-100 dark:border-neutral-800 pb-3 flex items-center justify-between">
@@ -352,7 +348,7 @@ export function PolicyLabPage() {
                   </div>
                 </div>
 
-                {/* Resolved Destination URL */}
+                {/* Resolved Destination */}
                 {simulationResult.resolvedDestination && (
                   <div className="p-4 rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-1.5 font-mono text-xs">
                     <span className="text-[11px] font-sans text-neutral-400 uppercase font-semibold">
@@ -374,7 +370,7 @@ export function PolicyLabPage() {
                   </div>
                 )}
 
-                {/* Step-by-Step Policy Evaluation Pipeline */}
+                {/* Pipeline */}
                 <div className="space-y-3 pt-2">
                   <h4 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
                     Engine Evaluation Pipeline
@@ -422,9 +418,7 @@ export function PolicyLabPage() {
                         className="p-3 rounded-xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900/40 flex items-center justify-between"
                       >
                         <div className="space-y-0.5">
-                          <span className="font-semibold text-neutral-800 dark:text-neutral-200">
-                            {item.step}
-                          </span>
+                          <span className="font-semibold text-neutral-800 dark:text-neutral-200">{item.step}</span>
                           <p className="text-[11px] text-neutral-500">{item.detail}</p>
                         </div>
                         <Badge variant={item.passed ? 'success' : 'danger'}>

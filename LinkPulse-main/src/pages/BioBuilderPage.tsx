@@ -1,19 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Sparkles,
   Plus,
   Trash2,
   ExternalLink,
   Copy,
   Check,
-  Smartphone,
-  Eye,
-  Globe,
   Save,
-  Twitter,
-  Github,
-  Linkedin,
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useToastStore } from '../store/useToastStore';

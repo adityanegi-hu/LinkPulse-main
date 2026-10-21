@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, Shield, CheckCircle2, Ban, ExternalLink, XCircle } from 'lucide-react';
+import { AlertTriangle, Shield, CheckCircle2, Ban } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useToastStore } from '../../store/useToastStore';
 import { adminApi } from '../../lib/api';

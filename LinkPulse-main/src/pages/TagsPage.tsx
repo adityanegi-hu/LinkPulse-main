@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Tags as TagsIcon, Plus, Trash2, Tag as TagIcon } from 'lucide-react';
+import { Tags as TagsIcon, Plus, Trash2 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useToastStore } from '../store/useToastStore';
 import { tagsApi } from '../lib/api';

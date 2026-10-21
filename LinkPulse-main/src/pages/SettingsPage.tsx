@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Settings as SettingsIcon,
   User,
   Key,
   Sun,
@@ -9,7 +8,6 @@ import {
   Shield,
   Copy,
   Check,
-  Building,
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useThemeStore } from '../store/useThemeStore';
@@ -21,7 +19,7 @@ import { Input } from '../components/ui/Input';
 export function SettingsPage() {
   const { user, setUser } = useAuthStore();
   const { theme, setTheme } = useThemeStore();
-  const { success, error: toastError } = useToastStore();
+  const { success } = useToastStore();
 
   const [workspaceName, setWorkspaceName] = useState(user?.workspaceName || 'TechFlow HQ');
   const [apiKey, setApiKey] = useState('lp_live_9f81a7b8e2194d2093e1a0b5f67');

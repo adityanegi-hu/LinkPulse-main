@@ -8,12 +8,11 @@ import {
   MousePointerClick,
   Trash2,
   Edit,
-  ExternalLink,
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useToastStore } from '../store/useToastStore';
-import { campaignsApi, linksApi } from '../lib/api';
-import { Campaign, Link as LinkType } from '../types';
+import { campaignsApi } from '../lib/api';
+import { Campaign } from '../types';
 import { formatCompactNumber } from '../lib/utils';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';

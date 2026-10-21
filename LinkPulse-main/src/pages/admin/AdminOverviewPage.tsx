@@ -2,14 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Shield,
-  Users,
-  Link2,
-  MousePointerClick,
   AlertTriangle,
   Ban,
-  Activity,
   ArrowRight,
-  ExternalLink,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { adminApi, linksApi } from '../../lib/api';

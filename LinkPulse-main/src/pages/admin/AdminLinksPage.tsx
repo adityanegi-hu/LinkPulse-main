@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Power, Search, AlertCircle, ExternalLink, Trash2 } from 'lucide-react';
+import { Shield, Power, Search } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useToastStore } from '../../store/useToastStore';
 import { adminApi, linksApi } from '../../lib/api';

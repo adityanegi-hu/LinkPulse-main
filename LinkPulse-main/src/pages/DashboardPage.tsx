@@ -14,12 +14,7 @@ import {
   Bar,
 } from 'recharts';
 import {
-  Link2,
-  MousePointerClick,
-  Users,
-  Activity,
   AlertTriangle,
-  ExternalLink,
   Copy,
   Check,
   Plus,
@@ -43,7 +38,6 @@ export function DashboardPage() {
   const { success } = useToastStore();
   const navigate = useNavigate();
 
-  // Filters: Period (7d, 30d, 90d) and Campaign
   const [range, setRange] = useState<TimeRange>('30d');
   const [campaignId, setCampaignId] = useState<string>('');
 
@@ -106,23 +100,22 @@ export function DashboardPage() {
     loadDashboard();
   }, [user, range, campaignId]);
 
-  function handleCopy(id: string, shortCode: string) {
-    const full = `${getBaseShortUrl()}/r/${shortCode}`;
-    navigator.clipboard.writeText(full);
+  const handleCopy = (id: string, shortCode: string) => {
+    navigator.clipboard.writeText(`${getBaseShortUrl()}/r/${shortCode}`);
     setCopiedId(id);
     success('Copied to clipboard');
     setTimeout(() => setCopiedId(null), 2000);
-  }
+  };
 
   return (
     <div className="space-y-6">
-      {/* Filters: Period (7d, 30d, 90d) and Campaign */}
+      {/* Header and Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
             {user?.role === 'admin' ? 'Platform Analytics Dashboard' : 'Analytics Dashboard'}
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
             {user?.role === 'admin'
               ? 'Platform-wide telemetry and visitor volume'
               : 'Real-time performance metrics for your short links'}
@@ -130,8 +123,7 @@ export function DashboardPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Period selector */}
-          <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-1 text-xs">
+          <div className="flex items-center rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-1 text-xs">
             {(['7d', '30d', '90d'] as TimeRange[]).map((r) => (
               <button
                 key={r}
@@ -147,14 +139,10 @@ export function DashboardPage() {
             ))}
           </div>
 
-          {/* Campaign Filter */}
           <div className="w-full sm:w-44">
             <Select
               className="text-xs py-1.5 min-h-[38px] w-full"
-              options={[
-                { value: '', label: 'All Campaigns' },
-                ...campaigns.map((c) => ({ value: c.id, label: c.name })),
-              ]}
+              options={[{ value: '', label: 'All Campaigns' }, ...campaigns.map((c) => ({ value: c.id, label: c.name }))]}
               value={campaignId}
               onChange={(e) => setCampaignId(e.target.value)}
             />
@@ -192,7 +180,7 @@ export function DashboardPage() {
         />
       ) : (
         <>
-          {/* 4 KPI Cards: Total links, Total clicks, Unique visitors, Active links */}
+          {/* 4 KPI Cards */}
           <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <Card className="p-4 space-y-1">
               <span className="text-xs text-neutral-500">Total Links</span>
@@ -229,17 +217,11 @@ export function DashboardPage() {
             </Card>
           </div>
 
-          {/* ONLY 3 CHARTS: (1) Clicks over time line, (2) Devices donut, (3) Top referrers bar */}
-
-          {/* Chart 1: Clicks Over Time (Line) */}
+          {/* Chart 1: Clicks Over Time */}
           <Card className="p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                  Clicks Over Time
-                </h3>
-                <p className="text-xs text-slate-500">Daily click frequency across active links</p>
-              </div>
+            <div>
+              <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">Clicks Over Time</h3>
+              <p className="text-xs text-neutral-500">Daily click frequency across active links</p>
             </div>
 
             <div className="h-64 w-full pt-2">
@@ -267,28 +249,18 @@ export function DashboardPage() {
                       color: '#fff',
                     }}
                   />
-                  <Line
-                    type="monotone"
-                    dataKey="clicks"
-                    stroke="#171717"
-                    strokeWidth={2.5}
-                    dot={false}
-                    activeDot={{ r: 5 }}
-                  />
+                  <Line type="monotone" dataKey="clicks" stroke="#171717" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </Card>
 
-          {/* Chart 2: Devices (donut) & Chart 3: Top referrers (bar) */}
+          {/* Chart 2: Devices & Chart 3: Top Referrers */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Chart 2: Devices (donut) */}
             <Card className="p-6 space-y-4">
               <div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                  Device Breakdown
-                </h3>
-                <p className="text-xs text-slate-500">Distribution by client hardware</p>
+                <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">Device Breakdown</h3>
+                <p className="text-xs text-neutral-500">Distribution by client hardware</p>
               </div>
 
               <div className="h-44 w-full">
@@ -323,23 +295,17 @@ export function DashboardPage() {
               <div className="flex items-center justify-center gap-4 text-xs font-mono">
                 {analytics.deviceBreakdown.map((dev, idx) => (
                   <div key={dev.name} className="flex items-center gap-1.5">
-                    <span
-                      className="w-2.5 h-2.5 rounded-xs"
-                      style={{ backgroundColor: DEVICE_COLORS[idx % DEVICE_COLORS.length] }}
-                    />
+                    <span className="w-2.5 h-2.5 rounded-xs" style={{ backgroundColor: DEVICE_COLORS[idx % DEVICE_COLORS.length] }} />
                     <span>{dev.name}: {dev.percentage}%</span>
                   </div>
                 ))}
               </div>
             </Card>
 
-            {/* Chart 3: Top referrers (bar) */}
             <Card className="p-6 space-y-4">
               <div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                  Top Referrers
-                </h3>
-                <p className="text-xs text-slate-500">Traffic origin domains</p>
+                <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">Top Referrers</h3>
+                <p className="text-xs text-neutral-500">Traffic origin domains</p>
               </div>
 
               <div className="h-44 w-full">
@@ -360,21 +326,16 @@ export function DashboardPage() {
                 </ResponsiveContainer>
               </div>
 
-              <div className="text-xs text-neutral-400 font-mono text-center">
-                Top visitor acquisition channels
-              </div>
+              <div className="text-xs text-neutral-400 font-mono text-center">Top visitor acquisition channels</div>
             </Card>
           </div>
 
-          {/* 2 TABLES: Top links & Link alerts */}
+          {/* Tables: Top links & Link alerts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Table 1: Top Links */}
             <Card className="p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">
-                    Top Performing Links
-                  </h3>
+                  <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">Top Performing Links</h3>
                   <p className="text-xs text-neutral-500">Most clicked short links</p>
                 </div>
                 <Link to="/app/links">
@@ -418,25 +379,23 @@ export function DashboardPage() {
               </div>
             </Card>
 
-            {/* Table 2: Link Alerts */}
             <Card className="p-5 space-y-3">
               <div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-neutral-900 dark:text-white flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-amber-500" />
                   <span>Link Alerts</span>
                 </h3>
-                <p className="text-xs text-slate-500">Expiring soon, limit almost reached, or disabled</p>
+                <p className="text-xs text-neutral-500">Expiring soon, limit almost reached, or disabled</p>
               </div>
 
               {linkAlerts.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-400">
+                <div className="py-8 text-center text-xs text-neutral-400">
                   All active links are healthy and within quota limits.
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
                   {linkAlerts.map((link) => {
                     const isLimitClose = link.rules.clickLimit && link.clicksCount >= link.rules.clickLimit * 0.85;
-                    const isExpSoon = Boolean(link.rules.expiresAt);
 
                     return (
                       <div key={link.id} className="py-2.5 flex items-center justify-between gap-3 text-xs">
@@ -447,7 +406,7 @@ export function DashboardPage() {
                           >
                             /{link.shortCode}
                           </Link>
-                          <p className="text-slate-500 truncate max-w-xs">{link.title}</p>
+                          <p className="text-neutral-500 truncate max-w-xs">{link.title}</p>
                         </div>
 
                         <div className="shrink-0">

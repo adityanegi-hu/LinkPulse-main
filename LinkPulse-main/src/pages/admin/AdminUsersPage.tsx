@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Shield, User as UserIcon, Calendar, CheckCircle2 } from 'lucide-react';
+import { Shield } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { adminApi, linksApi } from '../../lib/api';
-import { User, Link as LinkType } from '../../types';
+import { User } from '../../types';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { TableRowSkeleton } from '../../components/ui/Skeleton';

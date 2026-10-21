@@ -433,22 +433,24 @@ export class RedirectService {
     const client = this.parseUserAgent(ctx.userAgent);
     const ipHash = this.hashIp(ctx.ip);
 
-    ClickEvent.create({
-      linkId: link._id,
-      campaignId: link.campaignId,
-      timestamp: new Date(),
-      ipHash,
-      referrer: ctx.referrer || 'Direct',
-      userAgent: ctx.userAgent || '',
-      device: client.device,
-      browser: client.browser,
-      os: client.os,
-      country: ctx.country || 'US',
-      isBot: client.isBot,
-      variantDestination: evaluation.selectedVariant || undefined,
-    }).catch((err) => {
+    try {
+      await ClickEvent.create({
+        linkId: link._id,
+        campaignId: link.campaignId,
+        timestamp: new Date(),
+        ipHash,
+        referrer: ctx.referrer || 'Direct',
+        userAgent: ctx.userAgent || '',
+        device: client.device,
+        browser: client.browser,
+        os: client.os,
+        country: ctx.country || 'US',
+        isBot: client.isBot,
+        variantDestination: evaluation.selectedVariant || undefined,
+      });
+    } catch (err) {
       console.error('Failed to persist click event:', err);
-    });
+    }
 
     return evaluation;
   }

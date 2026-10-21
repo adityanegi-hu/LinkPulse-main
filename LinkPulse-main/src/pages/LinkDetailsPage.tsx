@@ -1,34 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
-  Link2,
   Copy,
   Check,
   ExternalLink,
-  QrCode,
-  Lock,
-  Calendar,
-  Smartphone,
-  AlertTriangle,
   Download,
   Trash2,
   ArrowLeft,
-  CheckCircle2,
   Power,
-  BarChart2,
-  Clock,
-  ShieldCheck,
-  Globe,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { linksApi, clicksApi, policyLabApi } from '../lib/api';
+import { linksApi, clicksApi } from '../lib/api';
 import { useToastStore } from '../store/useToastStore';
 import { Link as LinkType, ClickEvent, AnalyticsSummary } from '../types';
-import { formatCompactNumber, cn, getBaseShortUrl } from '../lib/utils';
+import { formatCompactNumber, getBaseShortUrl } from '../lib/utils';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
 import { Tabs } from '../components/ui/Tabs';
 import { ConfirmDialog } from '../components/ui/Modal';
@@ -43,16 +31,10 @@ export function LinkDetailsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [clickLog, setClickLog] = useState<ClickEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Active tab: 'overview' | 'analytics' | 'rules' | 'qr' | 'logs'
   const [activeTab, setActiveTab] = useState('overview');
 
   // QR Customizer state
-  const [qrFgColor, setQrFgColor] = useState('#171717');
-  const [qrBgColor, setQrBgColor] = useState('#ffffff');
-  const [qrSize, setQrSize] = useState(200);
-
-  // Delete modal
+  const [qr, setQr] = useState({ fgColor: '#171717', bgColor: '#ffffff', size: 200 });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -86,16 +68,15 @@ export function LinkDetailsPage() {
     loadLinkDetails();
   }, [id, navigate]);
 
-  function handleCopy() {
+  const handleCopy = () => {
     if (!link) return;
-    const full = `${getBaseShortUrl()}/r/${link.shortCode}`;
-    navigator.clipboard.writeText(full);
+    navigator.clipboard.writeText(`${getBaseShortUrl()}/r/${link.shortCode}`);
     setCopied(true);
     success('Copied to clipboard');
     setTimeout(() => setCopied(false), 2000);
-  }
+  };
 
-  async function handleToggleActive() {
+  const handleToggleActive = async () => {
     if (!link) return;
     try {
       const updated = await linksApi.updateLink(link.id, { isActive: !link.isActive });
@@ -104,9 +85,9 @@ export function LinkDetailsPage() {
     } catch {
       toastError('Failed to update status');
     }
-  }
+  };
 
-  async function handleDelete() {
+  const handleDelete = async () => {
     if (!link) return;
     try {
       await linksApi.deleteLink(link.id);
@@ -115,9 +96,9 @@ export function LinkDetailsPage() {
     } catch {
       toastError('Failed to delete link');
     }
-  }
+  };
 
-  function handleDownloadSvg() {
+  const handleDownloadSvg = () => {
     const svgEl = document.getElementById('qr-svg-code');
     if (!svgEl) return;
     const svgData = new XMLSerializer().serializeToString(svgEl);
@@ -130,7 +111,7 @@ export function LinkDetailsPage() {
     linkEl.click();
     document.body.removeChild(linkEl);
     success('QR Code downloaded as SVG');
-  }
+  };
 
   if (isLoading || !link) {
     return (
@@ -150,29 +131,25 @@ export function LinkDetailsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Back button & Action Header */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link
             to="/app/links"
-            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
+            className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xl font-bold text-neutral-900 dark:text-white">
-                /{link.shortCode}
-              </span>
+              <span className="font-mono text-xl font-bold text-neutral-900 dark:text-white">/{link.shortCode}</span>
               {!link.isActive ? (
                 <Badge variant="danger" size="sm">Disabled</Badge>
               ) : (
                 <Badge variant="success" size="sm">Active</Badge>
               )}
             </div>
-            <h1 className="text-sm font-semibold text-neutral-900 dark:text-white truncate mt-0.5">
-              {link.title}
-            </h1>
+            <h1 className="text-sm font-semibold text-neutral-900 dark:text-white truncate mt-0.5">{link.title}</h1>
           </div>
         </div>
 
@@ -189,12 +166,7 @@ export function LinkDetailsPage() {
             </Button>
           </a>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleToggleActive}
-            className="text-xs"
-          >
+          <Button variant="outline" size="sm" onClick={handleToggleActive} className="text-xs">
             <Power className="w-3.5 h-3.5 mr-1" />
             <span>{link.isActive ? 'Disable' : 'Enable'}</span>
           </Button>
@@ -262,7 +234,7 @@ export function LinkDetailsPage() {
         </Card>
       </div>
 
-      {/* Tabs navigation */}
+      {/* Tabs */}
       <Tabs
         tabs={[
           { id: 'overview', label: 'Overview & Charts' },
@@ -274,13 +246,11 @@ export function LinkDetailsPage() {
         onChange={setActiveTab}
       />
 
-      {/* TAB 1: Overview & Charts */}
+      {/* TAB 1: Overview */}
       {activeTab === 'overview' && analytics && (
         <div className="space-y-6">
           <Card className="p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-              Clicks Over Last 30 Days
-            </h3>
+            <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">Clicks Over Last 30 Days</h3>
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={analytics.clicksOverTime} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -308,13 +278,11 @@ export function LinkDetailsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card className="p-5 space-y-3">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                Top Referrers
-              </h3>
+              <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">Top Referrers</h3>
               <div className="space-y-2 text-xs">
                 {analytics.referrers.map((ref: { name: string; count: number; percentage: number }) => (
                   <div key={ref.name} className="flex items-center justify-between">
-                    <span className="text-slate-600 dark:text-slate-400 truncate max-w-xs">{ref.name}</span>
+                    <span className="text-neutral-600 dark:text-neutral-400 truncate max-w-xs">{ref.name}</span>
                     <span className="font-mono tabular-nums">{ref.count}</span>
                   </div>
                 ))}
@@ -322,13 +290,11 @@ export function LinkDetailsPage() {
             </Card>
 
             <Card className="p-5 space-y-3">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                Device Distribution
-              </h3>
+              <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">Device Distribution</h3>
               <div className="space-y-2 text-xs">
                 {analytics.devices.map((dev: { name: string; count: number; percentage: number }) => (
                   <div key={dev.name} className="flex items-center justify-between">
-                    <span className="capitalize text-slate-600 dark:text-slate-400">{dev.name}</span>
+                    <span className="capitalize text-neutral-600 dark:text-neutral-400">{dev.name}</span>
                     <span className="font-mono tabular-nums">{dev.count} ({dev.percentage}%)</span>
                   </div>
                 ))}
@@ -341,42 +307,36 @@ export function LinkDetailsPage() {
       {/* TAB 2: Rules */}
       {activeTab === 'rules' && (
         <Card className="p-6 space-y-6 max-w-2xl">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3">
+          <h3 className="text-sm font-semibold text-neutral-900 dark:text-white border-b border-neutral-100 dark:border-neutral-800 pb-3">
             Active Configuration Rules
           </h3>
 
           <div className="space-y-4 text-xs">
-            <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800">
-              <span className="font-medium text-slate-600 dark:text-slate-400">Password Access:</span>
-              <span className="font-mono">
-                {link.rules.password ? `Enabled (${link.rules.password})` : 'Disabled'}
-              </span>
+            <div className="flex items-center justify-between py-2 border-b border-neutral-100 dark:border-neutral-800">
+              <span className="font-medium text-neutral-600 dark:text-neutral-400">Password Access:</span>
+              <span className="font-mono">{link.rules.password ? `Enabled (${link.rules.password})` : 'Disabled'}</span>
             </div>
 
-            <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800">
-              <span className="font-medium text-slate-600 dark:text-slate-400">Expiration Date:</span>
-              <span className="font-mono">
-                {link.rules.expiresAt ? new Date(link.rules.expiresAt).toLocaleString() : 'Never'}
-              </span>
+            <div className="flex items-center justify-between py-2 border-b border-neutral-100 dark:border-neutral-800">
+              <span className="font-medium text-neutral-600 dark:text-neutral-400">Expiration Date:</span>
+              <span className="font-mono">{link.rules.expiresAt ? new Date(link.rules.expiresAt).toLocaleString() : 'Never'}</span>
             </div>
 
-            <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800">
-              <span className="font-medium text-slate-600 dark:text-slate-400">Visitor Click Limit:</span>
-              <span className="font-mono">
-                {link.rules.clickLimit ? `${link.rules.clickLimit} clicks` : 'Unlimited'}
-              </span>
+            <div className="flex items-center justify-between py-2 border-b border-neutral-100 dark:border-neutral-800">
+              <span className="font-medium text-neutral-600 dark:text-neutral-400">Visitor Click Limit:</span>
+              <span className="font-mono">{link.rules.clickLimit ? `${link.rules.clickLimit} clicks` : 'Unlimited'}</span>
             </div>
 
             <div className="space-y-2 py-2">
-              <span className="font-medium text-slate-600 dark:text-slate-400">Device Routing Targets:</span>
+              <span className="font-medium text-neutral-600 dark:text-neutral-400">Device Routing Targets:</span>
               {link.rules.deviceTargeting && Object.keys(link.rules.deviceTargeting).length > 0 ? (
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg space-y-1.5 font-mono text-[11px]">
+                <div className="p-3 bg-neutral-50 dark:bg-neutral-800/60 rounded-lg space-y-1.5 font-mono text-[11px]">
                   {link.rules.deviceTargeting.ios && <p>iOS: {link.rules.deviceTargeting.ios}</p>}
                   {link.rules.deviceTargeting.android && <p>Android: {link.rules.deviceTargeting.android}</p>}
                   {link.rules.deviceTargeting.desktop && <p>Desktop: {link.rules.deviceTargeting.desktop}</p>}
                 </div>
               ) : (
-                <p className="text-slate-400">No device targeting rules configured.</p>
+                <p className="text-neutral-400">No device targeting rules configured.</p>
               )}
             </div>
           </div>
@@ -387,80 +347,57 @@ export function LinkDetailsPage() {
       {activeTab === 'qr' && (
         <Card className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-            {/* Visual Canvas */}
-            <div className="flex flex-col items-center justify-center p-8 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700">
-              <div
-                style={{ backgroundColor: qrBgColor, padding: '16px', borderRadius: '12px' }}
-                className="shadow-sm"
-              >
-                <QRCodeSVG
-                  id="qr-svg-code"
-                  value={`${fullShortUrl}?src=qr`}
-                  size={qrSize}
-                  fgColor={qrFgColor}
-                  bgColor={qrBgColor}
-                  level="H"
-                />
+            <div className="flex flex-col items-center justify-center p-8 bg-neutral-50 dark:bg-neutral-800/40 rounded-xl border border-neutral-200 dark:border-neutral-700">
+              <div style={{ backgroundColor: qr.bgColor, padding: '16px', borderRadius: '12px' }} className="shadow-sm">
+                <QRCodeSVG id="qr-svg-code" value={`${fullShortUrl}?src=qr`} size={qr.size} fgColor={qr.fgColor} bgColor={qr.bgColor} level="H" />
               </div>
-              <p className="mt-4 text-xs font-mono text-slate-400">
-                Encodes: {fullShortUrl}?src=qr
-              </p>
+              <p className="mt-4 text-xs font-mono text-neutral-400">Encodes: {fullShortUrl}?src=qr</p>
             </div>
 
-            {/* Customizer settings */}
             <div className="space-y-4">
-              <h3 className="text-base font-semibold text-slate-900 dark:text-white">
-                Customize QR Output
-              </h3>
-
+              <h3 className="text-base font-semibold text-neutral-900 dark:text-white">Customize QR Output</h3>
               <div className="space-y-3 text-xs">
                 <div>
-                  <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Foreground Color
-                  </label>
+                  <label className="block font-medium text-neutral-700 dark:text-neutral-300 mb-1">Foreground Color</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
-                      value={qrFgColor}
-                      onChange={(e) => setQrFgColor(e.target.value)}
-                      className="w-8 h-8 rounded border border-slate-300 cursor-pointer"
+                      value={qr.fgColor}
+                      onChange={(e) => setQr({ ...qr, fgColor: e.target.value })}
+                      className="w-8 h-8 rounded border border-neutral-300 cursor-pointer"
                     />
-                    <span className="font-mono">{qrFgColor}</span>
+                    <span className="font-mono">{qr.fgColor}</span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Background Color
-                  </label>
+                  <label className="block font-medium text-neutral-700 dark:text-neutral-300 mb-1">Background Color</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
-                      value={qrBgColor}
-                      onChange={(e) => setQrBgColor(e.target.value)}
-                      className="w-8 h-8 rounded border border-slate-300 cursor-pointer"
+                      value={qr.bgColor}
+                      onChange={(e) => setQr({ ...qr, bgColor: e.target.value })}
+                      className="w-8 h-8 rounded border border-neutral-300 cursor-pointer"
                     />
-                    <span className="font-mono">{qrBgColor}</span>
+                    <span className="font-mono">{qr.bgColor}</span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Size: {qrSize}px
-                  </label>
+                  <label className="block font-medium text-neutral-700 dark:text-neutral-300 mb-1">Size: {qr.size}px</label>
                   <input
                     type="range"
                     min="120"
                     max="300"
                     step="10"
-                    value={qrSize}
-                    onChange={(e) => setQrSize(Number(e.target.value))}
+                    value={qr.size}
+                    onChange={(e) => setQr({ ...qr, size: Number(e.target.value) })}
                     className="w-full accent-neutral-900"
                   />
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800 flex items-center gap-3">
+              <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800">
                 <Button variant="primary" size="sm" onClick={handleDownloadSvg}>
                   <Download className="w-3.5 h-3.5 mr-1.5" />
                   <span>Download SVG</span>
@@ -492,18 +429,10 @@ export function LinkDetailsPage() {
                     <td className="py-3 px-4 font-mono text-[11px] text-neutral-500">
                       {new Date(event.timestamp).toLocaleString()}
                     </td>
-                    <td className="py-3 px-4 truncate max-w-xs text-neutral-700 dark:text-neutral-300">
-                      {event.referrer}
-                    </td>
-                    <td className="py-3 px-4 capitalize">
-                      {event.deviceType} · {event.os}
-                    </td>
-                    <td className="py-3 px-4">
-                      {event.city ? `${event.city}, ` : ''}{event.country}
-                    </td>
-                    <td className="py-3 px-4 uppercase text-[10px] font-mono font-semibold">
-                      {event.source}
-                    </td>
+                    <td className="py-3 px-4 truncate max-w-xs text-neutral-700 dark:text-neutral-300">{event.referrer}</td>
+                    <td className="py-3 px-4 capitalize">{event.deviceType} · {event.os}</td>
+                    <td className="py-3 px-4">{event.city ? `${event.city}, ` : ''}{event.country}</td>
+                    <td className="py-3 px-4 uppercase text-[10px] font-mono font-semibold">{event.source}</td>
                     <td className="py-3 px-4 text-right">
                       {event.isBot ? (
                         <Badge variant="warning" size="sm">Bot Crawler</Badge>

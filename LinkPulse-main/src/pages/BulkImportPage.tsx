@@ -3,13 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import Papa from 'papaparse';
 import {
   Upload,
-  FileSpreadsheet,
   Download,
   CheckCircle2,
   AlertCircle,
-  AlertTriangle,
   ArrowRight,
-  RefreshCw,
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useToastStore } from '../store/useToastStore';
@@ -52,23 +49,22 @@ export function BulkImportPage() {
     skipped: number;
   } | null>(null);
 
-  function handleDownloadTemplate() {
+  const handleDownloadTemplate = () => {
     const csvContent =
       'data:text/csv;charset=utf-8,url,alias,title,tags\n' +
       'https://github.com/facebook/react,react-repo,React GitHub Repository,OpenSource|Frontend\n' +
       'https://vite.dev,vitejs,Vite Next-Gen Tooling,DevTools|Vite\n' +
       'https://tailwindcss.com,tailwind,Tailwind CSS Framework,CSS|Design\n';
-    const encoded = encodeURI(csvContent);
     const link = document.createElement('a');
-    link.href = encoded;
+    link.href = encodeURI(csvContent);
     link.download = 'linkpulse_import_template.csv';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     success('Template CSV downloaded');
-  }
+  };
 
-  async function processCsvFile(file: File) {
+  const processCsvFile = async (file: File) => {
     setIsProcessing(true);
     setImportSummary(null);
 
@@ -92,12 +88,7 @@ export function BulkImportPage() {
             const rawUrl = (raw.url || '').trim();
             if (!rawUrl) continue;
 
-            let targetUrl = rawUrl;
-            if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-              targetUrl = 'https://' + targetUrl;
-            }
-
-            // URL check
+            const targetUrl = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
             const urlValidation = validateUrl(targetUrl, blocklistDomains);
             let rowStatus: ParsedRowResult['status'] = 'valid';
             let rowError: string | undefined;
@@ -107,11 +98,7 @@ export function BulkImportPage() {
               rowError = urlValidation.error;
             }
 
-            // Alias check or auto-generate
-            let alias = (raw.alias || '').trim();
-            if (!alias) {
-              alias = generateShortCode(6);
-            }
+            const alias = (raw.alias || '').trim() || generateShortCode(6);
 
             if (rowStatus === 'valid') {
               const aliasValidation = validateAlias(alias, existingCodes);
@@ -125,11 +112,7 @@ export function BulkImportPage() {
             }
 
             currentBatchAliases.add(alias.toLowerCase());
-
-            const tagsList = (raw.tags || '')
-              .split('|')
-              .map((t) => t.trim())
-              .filter(Boolean);
+            const tagsList = (raw.tags || '').split('|').map((t) => t.trim()).filter(Boolean);
 
             rows.push({
               url: targetUrl,
@@ -154,17 +137,17 @@ export function BulkImportPage() {
       toastError('Error inspecting links and blocklists');
       setIsProcessing(false);
     }
-  }
+  };
 
-  function handleFileDrop(e: React.DragEvent) {
+  const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+    if (e.dataTransfer.files?.[0]) {
       processCsvFile(e.dataTransfer.files[0]);
     }
-  }
+  };
 
-  async function handleImportValid() {
+  const handleImportValid = async () => {
     if (!user) return;
     const validRows = parsedRows.filter((r) => r.status === 'valid');
     if (validRows.length === 0) {
@@ -195,21 +178,20 @@ export function BulkImportPage() {
     } finally {
       setIsImporting(false);
     }
-  }
+  };
 
-  function handleDownloadErrorReport() {
+  const handleDownloadErrorReport = () => {
     const errorRows = parsedRows.filter((r) => r.status !== 'valid');
     const csvContent =
       'data:text/csv;charset=utf-8,url,alias,error_reason\n' +
       errorRows.map((r) => `"${r.url}","${r.alias}","${r.error || r.status}"`).join('\n');
-    const encoded = encodeURI(csvContent);
     const link = document.createElement('a');
-    link.href = encoded;
+    link.href = encodeURI(csvContent);
     link.download = 'linkpulse_import_errors.csv';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }
+  };
 
   const validCount = parsedRows.filter((r) => r.status === 'valid').length;
   const invalidCount = parsedRows.length - validCount;
@@ -218,10 +200,8 @@ export function BulkImportPage() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Bulk CSV Link Import
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">Bulk CSV Link Import</h1>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
             Migrate or create hundreds of short links simultaneously with automatic validation
           </p>
         </div>
@@ -241,9 +221,7 @@ export function BulkImportPage() {
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleFileDrop}
         className={`p-8 sm:p-12 text-center border-2 border-dashed transition-colors cursor-pointer rounded-2xl ${
-          isDragging
-            ? 'border-neutral-900 bg-neutral-100 dark:bg-neutral-800/40'
-            : 'border-neutral-300 dark:border-neutral-800 hover:border-neutral-400'
+          isDragging ? 'border-neutral-900 bg-neutral-100 dark:bg-neutral-800/40' : 'border-neutral-300 dark:border-neutral-800 hover:border-neutral-400'
         }`}
         onClick={() => fileInputRef.current?.click()}
       >
@@ -253,20 +231,18 @@ export function BulkImportPage() {
           accept=".csv"
           className="hidden"
           onChange={(e) => {
-            if (e.target.files && e.target.files[0]) {
-              processCsvFile(e.target.files[0]);
-            }
+            if (e.target.files?.[0]) processCsvFile(e.target.files[0]);
           }}
         />
 
-        <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center mx-auto mb-4">
+        <div className="w-12 h-12 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-500 flex items-center justify-center mx-auto mb-4">
           <Upload className="w-6 h-6 stroke-[1.8]" />
         </div>
 
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+        <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">
           Drop your .CSV file here, or click to browse
         </h3>
-        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto mt-1">
+        <p className="text-xs text-neutral-500 dark:text-neutral-400 max-w-sm mx-auto mt-1">
           CSV columns: <span className="font-mono">url, alias, title, tags</span> (pipe-separated).
         </p>
       </Card>
@@ -274,11 +250,9 @@ export function BulkImportPage() {
       {/* Parsed Preview Table */}
       {parsedRows.length > 0 && (
         <Card className="p-0 overflow-hidden space-y-0">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="p-4 border-b border-neutral-200 dark:border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <span className="text-xs font-semibold text-slate-900 dark:text-white">
-                Batch Validation Preview
-              </span>
+              <span className="text-xs font-semibold text-neutral-900 dark:text-white">Batch Validation Preview</span>
               <Badge variant="success" size="sm">
                 {validCount} Valid
               </Badge>
@@ -311,7 +285,7 @@ export function BulkImportPage() {
 
           <div className="max-h-96 overflow-y-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 font-semibold uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 sticky top-0">
+              <thead className="bg-neutral-50 dark:bg-neutral-800/80 text-neutral-500 font-semibold uppercase tracking-wider border-b border-neutral-200 dark:border-neutral-800 sticky top-0">
                 <tr>
                   <th className="py-2.5 px-4">Status</th>
                   <th className="py-2.5 px-4">Destination Target</th>
@@ -320,15 +294,11 @@ export function BulkImportPage() {
                   <th className="py-2.5 px-4">Tags</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
                 {parsedRows.map((row, idx) => (
                   <tr
                     key={idx}
-                    className={
-                      row.status === 'valid'
-                        ? 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                        : 'bg-rose-50/40 dark:bg-rose-950/20'
-                    }
+                    className={row.status === 'valid' ? 'hover:bg-neutral-50 dark:hover:bg-neutral-800/50' : 'bg-rose-50/40 dark:bg-rose-950/20'}
                   >
                     <td className="py-2.5 px-4">
                       {row.status === 'valid' ? (
@@ -343,18 +313,10 @@ export function BulkImportPage() {
                         </span>
                       )}
                     </td>
-                    <td className="py-2.5 px-4 font-mono text-slate-600 dark:text-slate-300 truncate max-w-xs">
-                      {row.url}
-                    </td>
-                    <td className="py-2.5 px-4 font-mono font-semibold text-neutral-900 dark:text-neutral-100">
-                      /{row.alias}
-                    </td>
-                    <td className="py-2.5 px-4 truncate max-w-xs text-slate-800 dark:text-slate-200">
-                      {row.title}
-                    </td>
-                    <td className="py-2.5 px-4 text-slate-400">
-                      {row.tags.length > 0 ? row.tags.join(', ') : '—'}
-                    </td>
+                    <td className="py-2.5 px-4 font-mono text-neutral-600 dark:text-neutral-300 truncate max-w-xs">{row.url}</td>
+                    <td className="py-2.5 px-4 font-mono font-semibold text-neutral-900 dark:text-neutral-100">/{row.alias}</td>
+                    <td className="py-2.5 px-4 truncate max-w-xs text-neutral-800 dark:text-neutral-200">{row.title}</td>
+                    <td className="py-2.5 px-4 text-neutral-400">{row.tags.length > 0 ? row.tags.join(', ') : '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -363,17 +325,15 @@ export function BulkImportPage() {
         </Card>
       )}
 
-      {/* Import Summary Report */}
+      {/* Import Summary */}
       {importSummary && (
         <Card className="p-6 text-center space-y-4 animate-in fade-in duration-200">
           <div className="w-12 h-12 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">
-              Import Completed Successfully
-            </h3>
-            <p className="text-xs text-slate-500 mt-1">
+            <h3 className="text-base font-bold text-neutral-900 dark:text-white">Import Completed Successfully</h3>
+            <p className="text-xs text-neutral-500 mt-1">
               Imported {importSummary.imported} links ({importSummary.skipped} rows skipped due to duplicate or invalid syntax).
             </p>
           </div>

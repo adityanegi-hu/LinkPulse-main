@@ -10,7 +10,6 @@ import {
   ExternalLink,
   Power,
   RefreshCw,
-  TrendingUp,
   Link2,
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
@@ -21,7 +20,6 @@ import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Skeleton } from '../components/ui/Skeleton';
 import { EmptyState } from '../components/ui/EmptyState';
-import { getBaseShortUrl } from '../lib/utils';
 
 export function LifecyclePage() {
   const { user } = useAuthStore();

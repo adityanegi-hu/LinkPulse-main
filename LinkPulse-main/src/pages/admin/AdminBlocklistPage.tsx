@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Ban, Plus, Trash2, Shield, Search, CheckCircle2 } from 'lucide-react';
+import { Ban, Plus, Trash2, Shield, Search } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useToastStore } from '../../store/useToastStore';
 import { adminApi } from '../../lib/api';

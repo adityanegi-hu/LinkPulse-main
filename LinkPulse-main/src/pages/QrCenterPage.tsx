@@ -1,15 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import {
-  QrCode,
-  Download,
-  Copy,
-  Check,
-  ExternalLink,
-  Sparkles,
-  Sliders,
-  Palette,
-} from 'lucide-react';
+import { QrCode, Download, Palette } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useToastStore } from '../store/useToastStore';
@@ -21,6 +12,42 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { formatCompactNumber, getBaseShortUrl } from '../lib/utils';
 
+function downloadUrl(url: string, filename: string) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function ColorField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  return (
+    <div>
+      <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-700 dark:text-neutral-300 mb-1.5">
+        {label}
+      </label>
+      <div className="flex items-center gap-3">
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-9 h-9 rounded-lg border border-neutral-300 dark:border-neutral-700 cursor-pointer"
+        />
+        <Input value={value} onChange={(e) => onChange(e.target.value)} isMono className="h-9" />
+      </div>
+    </div>
+  );
+}
+
 export function QrCenterPage() {
   const { user } = useAuthStore();
   const { success, error: toastError } = useToastStore();
@@ -31,11 +58,13 @@ export function QrCenterPage() {
   const [customUrl, setCustomUrl] = useState<string>('');
   const [mode, setMode] = useState<'existing' | 'custom'>('existing');
 
-  // Customizer styling
-  const [fgColor, setFgColor] = useState('#171717');
-  const [bgColor, setBgColor] = useState('#ffffff');
-  const [size, setSize] = useState(220);
-  const [includeMargin, setIncludeMargin] = useState(true);
+  // Unified QR styling state
+  const [styling, setStyling] = useState({
+    fgColor: '#171717',
+    bgColor: '#ffffff',
+    size: 220,
+    includeMargin: true,
+  });
 
   useEffect(() => {
     async function loadLinks() {
@@ -59,70 +88,71 @@ export function QrCenterPage() {
   }, [user, searchParams]);
 
   const activeLink = links.find((l) => l.id === selectedLinkId);
-
   const finalQrValue =
     mode === 'existing' && activeLink
       ? `${getBaseShortUrl()}/r/${activeLink.shortCode}?src=qr`
-      : customUrl || `${getBaseShortUrl()}`;
+      : customUrl || getBaseShortUrl();
 
-  function handleDownloadSvg() {
+  const getSvgString = () => {
     const svgEl = document.getElementById('qr-center-svg');
-    if (!svgEl) return;
-    const svgData = new XMLSerializer().serializeToString(svgEl);
+    return svgEl ? new XMLSerializer().serializeToString(svgEl) : null;
+  };
+
+  const getFilename = (ext: string) => {
+    const slug = mode === 'existing' && activeLink ? activeLink.shortCode : 'custom';
+    return `linkpulse-qr-${slug}.${ext}`;
+  };
+
+  const handleDownloadSvg = () => {
+    const svgData = getSvgString();
+    if (!svgData) return;
+
     const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `linkpulse-qr-${mode === 'existing' && activeLink ? activeLink.shortCode : 'custom'}.svg`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    downloadUrl(url, getFilename('svg'));
+    URL.revokeObjectURL(url);
     success('QR Code exported as vector SVG');
-  }
+  };
 
-  function handleDownloadPng() {
-    const svgEl = document.getElementById('qr-center-svg') as SVGElement | null;
-    if (!svgEl) return;
+  const handleDownloadPng = () => {
+    const svgData = getSvgString();
+    if (!svgData) return;
 
-    const svgData = new XMLSerializer().serializeToString(svgEl);
+    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const blobUrl = URL.createObjectURL(blob);
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const img = new Image();
 
-    canvas.width = size * 2;
-    canvas.height = size * 2;
+    canvas.width = styling.size * 2;
+    canvas.height = styling.size * 2;
 
     img.onload = () => {
       if (ctx) {
-        ctx.fillStyle = bgColor;
+        ctx.fillStyle = styling.bgColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const pngUrl = canvas.toDataURL('image/png');
-        const a = document.createElement('a');
-        a.href = pngUrl;
-        a.download = `linkpulse-qr-${mode === 'existing' && activeLink ? activeLink.shortCode : 'custom'}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        downloadUrl(canvas.toDataURL('image/png'), getFilename('png'));
+        URL.revokeObjectURL(blobUrl);
         success('QR Code exported as high-res PNG');
       }
     };
-    img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
-  }
+    img.src = blobUrl;
+  };
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
           Vector QR Code Studio
         </h1>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+        <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
           Generate, customize, and export production-ready vector QR codes with embedded scan analytics
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Side: Controls (7 cols) */}
+        {/* Left Side: Controls */}
         <div className="lg:col-span-7 space-y-6">
           <Card className="p-6 space-y-5">
             <h3 className="text-sm font-semibold text-neutral-900 dark:text-white flex items-center gap-2">
@@ -131,14 +161,14 @@ export function QrCenterPage() {
             </h3>
 
             {/* Target mode toggle */}
-            <div className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs">
+            <div className="flex items-center gap-2 p-1 bg-neutral-100 dark:bg-neutral-800 rounded-lg text-xs">
               <button
                 type="button"
                 onClick={() => setMode('existing')}
                 className={`flex-1 py-1.5 font-medium rounded-md transition-colors ${
                   mode === 'existing'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs font-semibold'
-                    : 'text-slate-600 dark:text-slate-400'
+                    ? 'bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white shadow-xs font-semibold'
+                    : 'text-neutral-600 dark:text-neutral-400'
                 }`}
               >
                 Existing Short Link
@@ -148,8 +178,8 @@ export function QrCenterPage() {
                 onClick={() => setMode('custom')}
                 className={`flex-1 py-1.5 font-medium rounded-md transition-colors ${
                   mode === 'custom'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs font-semibold'
-                    : 'text-slate-600 dark:text-slate-400'
+                    ? 'bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white shadow-xs font-semibold'
+                    : 'text-neutral-600 dark:text-neutral-400'
                 }`}
               >
                 Custom URL
@@ -169,11 +199,9 @@ export function QrCenterPage() {
                 />
 
                 {activeLink && (
-                  <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-lg border border-slate-200 dark:border-slate-800 text-xs space-y-1">
-                    <p className="font-semibold text-slate-800 dark:text-slate-200">
-                      Telemetry Tracking:
-                    </p>
-                    <p className="text-slate-500 font-mono text-[11px] truncate">
+                  <div className="p-3 bg-neutral-50 dark:bg-neutral-900/60 rounded-lg border border-neutral-200 dark:border-neutral-800 text-xs space-y-1">
+                    <p className="font-semibold text-neutral-800 dark:text-neutral-200">Telemetry Tracking:</p>
+                    <p className="text-neutral-500 font-mono text-[11px] truncate">
                       {getBaseShortUrl()}/r/{activeLink.shortCode}?src=qr
                     </p>
                     <p className="text-neutral-900 dark:text-white font-mono text-[11px] pt-1 font-semibold">
@@ -201,59 +229,30 @@ export function QrCenterPage() {
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
-                  Foreground Color
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={fgColor}
-                    onChange={(e) => setFgColor(e.target.value)}
-                    className="w-9 h-9 rounded-lg border border-slate-300 dark:border-slate-700 cursor-pointer"
-                  />
-                  <Input
-                    value={fgColor}
-                    onChange={(e) => setFgColor(e.target.value)}
-                    isMono
-                    className="h-9"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
-                  Background Color
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={bgColor}
-                    onChange={(e) => setBgColor(e.target.value)}
-                    className="w-9 h-9 rounded-lg border border-slate-300 dark:border-slate-700 cursor-pointer"
-                  />
-                  <Input
-                    value={bgColor}
-                    onChange={(e) => setBgColor(e.target.value)}
-                    isMono
-                    className="h-9"
-                  />
-                </div>
-              </div>
+              <ColorField
+                label="Foreground Color"
+                value={styling.fgColor}
+                onChange={(val) => setStyling({ ...styling, fgColor: val })}
+              />
+              <ColorField
+                label="Background Color"
+                value={styling.bgColor}
+                onChange={(val) => setStyling({ ...styling, bgColor: val })}
+              />
             </div>
 
             <div>
-              <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <div className="flex items-center justify-between text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
                 <span>Export Size</span>
-                <span className="font-mono">{size} x {size} px</span>
+                <span className="font-mono">{styling.size} x {styling.size} px</span>
               </div>
               <input
                 type="range"
                 min="120"
                 max="400"
                 step="20"
-                value={size}
-                onChange={(e) => setSize(Number(e.target.value))}
+                value={styling.size}
+                onChange={(e) => setStyling({ ...styling, size: Number(e.target.value) })}
                 className="w-full accent-neutral-900"
               />
             </div>
@@ -262,50 +261,46 @@ export function QrCenterPage() {
               <input
                 type="checkbox"
                 id="margin-toggle"
-                checked={includeMargin}
-                onChange={(e) => setIncludeMargin(e.target.checked)}
+                checked={styling.includeMargin}
+                onChange={(e) => setStyling({ ...styling, includeMargin: e.target.checked })}
                 className="w-4 h-4 accent-neutral-900 rounded cursor-pointer"
               />
-              <label htmlFor="margin-toggle" className="text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
+              <label htmlFor="margin-toggle" className="text-xs text-neutral-700 dark:text-neutral-300 cursor-pointer">
                 Include quiet safety margin around code
               </label>
             </div>
           </Card>
         </div>
 
-        {/* Right Side: Live Canvas Preview (5 cols) */}
+        {/* Right Side: Live Canvas Preview */}
         <div className="lg:col-span-5 space-y-4">
-          <Card className="p-8 flex flex-col items-center justify-center text-center space-y-6 bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+          <Card className="p-8 flex flex-col items-center justify-center text-center space-y-6 bg-neutral-50 dark:bg-neutral-900/60 border-neutral-200 dark:border-neutral-800">
+            <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
               Live Canvas Preview
             </span>
 
             <div
               style={{
-                backgroundColor: bgColor,
-                padding: includeMargin ? '24px' : '0px',
+                backgroundColor: styling.bgColor,
+                padding: styling.includeMargin ? '24px' : '0px',
                 borderRadius: '16px',
               }}
-              className="shadow-md border border-slate-200 dark:border-slate-700 transition-all"
+              className="shadow-md border border-neutral-200 dark:border-neutral-700 transition-all"
             >
               <QRCodeSVG
                 id="qr-center-svg"
                 value={finalQrValue}
-                size={size > 260 ? 260 : size}
-                fgColor={fgColor}
-                bgColor={bgColor}
+                size={Math.min(styling.size, 260)}
+                fgColor={styling.fgColor}
+                bgColor={styling.bgColor}
                 level="H"
-                includeMargin={includeMargin}
+                includeMargin={styling.includeMargin}
               />
             </div>
 
             <div className="space-y-1 max-w-xs">
-              <p className="text-xs font-bold text-slate-900 dark:text-white">
-                Encoded Value:
-              </p>
-              <p className="text-[11px] font-mono text-slate-500 break-all">
-                {finalQrValue}
-              </p>
+              <p className="text-xs font-bold text-neutral-900 dark:text-white">Encoded Value:</p>
+              <p className="text-[11px] font-mono text-neutral-500 break-all">{finalQrValue}</p>
             </div>
 
             {/* Export buttons */}

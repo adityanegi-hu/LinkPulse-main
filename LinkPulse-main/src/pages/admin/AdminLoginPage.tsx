@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Shield, Lock, Eye, EyeOff, ArrowRight, AlertCircle, ArrowLeft, KeyRound } from 'lucide-react';
+import { Shield, Eye, EyeOff, ArrowRight, AlertCircle, ArrowLeft, KeyRound } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useToastStore } from '../../store/useToastStore';
 import { EmailSchema } from '../../lib/validators';

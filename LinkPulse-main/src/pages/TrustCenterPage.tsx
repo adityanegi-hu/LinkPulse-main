@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Shield,
   ShieldCheck,
   AlertTriangle,
   Search,
-  ExternalLink,
   CheckCircle2,
   XCircle,
   Clock,
   Ban,
-  Lock,
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useToastStore } from '../store/useToastStore';

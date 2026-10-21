@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Link2,
   Plus,
   Search,
   Copy,
@@ -10,19 +9,15 @@ import {
   Edit,
   Trash2,
   Power,
-  ExternalLink,
-  Filter,
   CheckSquare,
   Square,
   FileSpreadsheet,
-  Download,
-  AlertCircle,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useToastStore } from '../store/useToastStore';
 import { linksApi, campaignsApi, tagsApi } from '../lib/api';
-import { Link as LinkType, Campaign, Tag } from '../types';
+import { Link as LinkType, Campaign } from '../types';
 import { formatCompactNumber, cn, getBaseShortUrl } from '../lib/utils';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -31,41 +26,49 @@ import { Select } from '../components/ui/Select';
 import { Badge } from '../components/ui/Badge';
 import { Modal, ConfirmDialog } from '../components/ui/Modal';
 import { EmptyState } from '../components/ui/EmptyState';
-import { Skeleton, TableRowSkeleton } from '../components/ui/Skeleton';
+import { TableRowSkeleton } from '../components/ui/Skeleton';
+
+function LinkStatusBadge({ link }: { link: LinkType }) {
+  const isExpired = link.rules.expiresAt && new Date(link.rules.expiresAt) <= new Date();
+  if (!link.isActive || link.abuseStatus === 'disabled') {
+    return <Badge variant="danger" size="sm">Disabled</Badge>;
+  }
+  if (isExpired) {
+    return <Badge variant="warning" size="sm">Expired</Badge>;
+  }
+  if (link.rules.clickLimit && link.clicksCount >= link.rules.clickLimit) {
+    return <Badge variant="warning" size="sm">Limit reached</Badge>;
+  }
+  return <Badge variant="success" size="sm">Active</Badge>;
+}
 
 export function LinksListPage() {
   const { user } = useAuthStore();
   const { success, error: toastError } = useToastStore();
   const navigate = useNavigate();
 
-  // Search & Filter state
+  // Search & Filters
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'expired' | 'disabled'>('all');
   const [campaignFilter, setCampaignFilter] = useState('');
-  const [tagFilter, setTagFilter] = useState('');
   const [sortBy, setSortBy] = useState<'latest' | 'clicks' | 'title'>('latest');
 
-  // Pagination
+  // Pagination & Selection
   const [page, setPage] = useState(1);
   const pageSize = 10;
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Data
   const [links, setLinks] = useState<LinkType[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Bulk selection
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-
-  // Modals
-  const [qrModalLink, setQrModalLink] = useState<LinkType | null>(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
-  const [editLinkModal, setEditLinkModal] = useState<LinkType | null>(null);
-  const [editTitle, setEditTitle] = useState('');
-  const [editOriginalUrl, setEditOriginalUrl] = useState('');
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  // Modals state
+  const [qrLink, setQrLink] = useState<LinkType | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [editLink, setEditLink] = useState<{ id: string; shortCode: string; title: string; originalUrl: string } | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -73,14 +76,12 @@ export function LinksListPage() {
       setIsLoading(true);
       try {
         const userFilter = user.role === 'admin' ? undefined : user.id;
-        const [allLinks, camps, allTags] = await Promise.all([
+        const [allLinks, camps] = await Promise.all([
           linksApi.getLinks({ userId: userFilter }),
           campaignsApi.getCampaigns(userFilter),
-          tagsApi.getTags(userFilter),
         ]);
         setLinks(allLinks);
         setCampaigns(camps);
-        setTags(allTags);
       } catch (e) {
         console.error('Failed to load links', e);
       } finally {
@@ -93,43 +94,27 @@ export function LinksListPage() {
   // Filter & Sort
   const filteredLinks = useMemo(() => {
     let result = [...links];
+    const now = new Date();
 
-    // Search
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(
-        (l) =>
-          l.title.toLowerCase().includes(q) ||
-          l.shortCode.toLowerCase().includes(q) ||
-          l.originalUrl.toLowerCase().includes(q)
+        (l) => l.title.toLowerCase().includes(q) || l.shortCode.toLowerCase().includes(q) || l.originalUrl.toLowerCase().includes(q)
       );
     }
 
-    // Status
-    if (statusFilter !== 'all') {
-      const now = new Date();
-      if (statusFilter === 'active') {
-        result = result.filter(
-          (l) => l.isActive && l.abuseStatus === 'clean' && (!l.rules.expiresAt || new Date(l.rules.expiresAt) > now)
-        );
-      } else if (statusFilter === 'expired') {
-        result = result.filter((l) => l.rules.expiresAt && new Date(l.rules.expiresAt) <= now);
-      } else if (statusFilter === 'disabled') {
-        result = result.filter((l) => !l.isActive || l.abuseStatus === 'disabled');
-      }
+    if (statusFilter === 'active') {
+      result = result.filter((l) => l.isActive && l.abuseStatus === 'clean' && (!l.rules.expiresAt || new Date(l.rules.expiresAt) > now));
+    } else if (statusFilter === 'expired') {
+      result = result.filter((l) => l.rules.expiresAt && new Date(l.rules.expiresAt) <= now);
+    } else if (statusFilter === 'disabled') {
+      result = result.filter((l) => !l.isActive || l.abuseStatus === 'disabled');
     }
 
-    // Campaign
     if (campaignFilter) {
       result = result.filter((l) => l.campaignId === campaignFilter);
     }
 
-    // Tag
-    if (tagFilter) {
-      result = result.filter((l) => l.tags.includes(tagFilter));
-    }
-
-    // Sort
     if (sortBy === 'latest') {
       result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } else if (sortBy === 'clicks') {
@@ -139,24 +124,22 @@ export function LinksListPage() {
     }
 
     return result;
-  }, [links, search, statusFilter, campaignFilter, tagFilter, sortBy]);
+  }, [links, search, statusFilter, campaignFilter, sortBy]);
 
-  // Pagination Slice
   const totalPages = Math.ceil(filteredLinks.length / pageSize) || 1;
   const paginatedLinks = useMemo(() => {
     const start = (page - 1) * pageSize;
     return filteredLinks.slice(start, start + pageSize);
   }, [filteredLinks, page]);
 
-  function handleCopy(id: string, code: string) {
-    const full = `${getBaseShortUrl()}/r/${code}`;
-    navigator.clipboard.writeText(full);
+  const handleCopy = (id: string, code: string) => {
+    navigator.clipboard.writeText(`${getBaseShortUrl()}/r/${code}`);
     setCopiedId(id);
     success('Copied short URL to clipboard!');
     setTimeout(() => setCopiedId(null), 2000);
-  }
+  };
 
-  async function handleToggleStatus(link: LinkType) {
+  const handleToggleStatus = async (link: LinkType) => {
     try {
       const updated = await linksApi.updateLink(link.id, { isActive: !link.isActive });
       setLinks((prev) => prev.map((l) => (l.id === link.id ? updated : l)));
@@ -164,85 +147,79 @@ export function LinksListPage() {
     } catch {
       toastError('Failed to update status');
     }
-  }
+  };
 
-  async function handleDeleteConfirm() {
-    if (!deleteConfirmId) return;
+  const handleDeleteConfirm = async () => {
+    if (!deleteId) return;
     try {
-      await linksApi.deleteLink(deleteConfirmId);
-      setLinks((prev) => prev.filter((l) => l.id !== deleteConfirmId));
-      setSelectedIds((prev) => prev.filter((id) => id !== deleteConfirmId));
-      setDeleteConfirmId(null);
+      await linksApi.deleteLink(deleteId);
+      setLinks((prev) => prev.filter((l) => l.id !== deleteId));
+      setSelectedIds((prev) => prev.filter((id) => id !== deleteId));
+      setDeleteId(null);
       success('Link deleted successfully');
     } catch {
       toastError('Failed to delete link');
     }
-  }
+  };
 
-  async function handleBulkDelete() {
+  const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
     try {
       await linksApi.bulkDeleteLinks(selectedIds);
       setLinks((prev) => prev.filter((l) => !selectedIds.includes(l.id)));
       setSelectedIds([]);
-      setBulkDeleteConfirmOpen(false);
+      setBulkDeleteOpen(false);
       success(`Deleted ${selectedIds.length} links`);
     } catch {
       toastError('Failed to delete selected links');
     }
-  }
+  };
 
-  async function handleBulkToggleStatus(isActive: boolean) {
+  const handleBulkToggleStatus = async (isActive: boolean) => {
     if (selectedIds.length === 0) return;
     try {
       await linksApi.bulkSetStatus(selectedIds, isActive);
-      setLinks((prev) =>
-        prev.map((l) => (selectedIds.includes(l.id) ? { ...l, isActive } : l))
-      );
+      setLinks((prev) => prev.map((l) => (selectedIds.includes(l.id) ? { ...l, isActive } : l)));
       success(`${isActive ? 'Enabled' : 'Disabled'} ${selectedIds.length} links`);
     } catch {
       toastError('Failed to update selected links');
     }
-  }
+  };
 
-  function handleSelectAll() {
-    if (selectedIds.length === paginatedLinks.length) {
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === paginatedLinks.length && paginatedLinks.length > 0) {
       setSelectedIds([]);
     } else {
       setSelectedIds(paginatedLinks.map((l) => l.id));
     }
-  }
+  };
 
-  function handleOpenEdit(link: LinkType) {
-    setEditLinkModal(link);
-    setEditTitle(link.title);
-    setEditOriginalUrl(link.originalUrl);
-  }
-
-  async function handleSaveEdit(e: React.FormEvent) {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editLinkModal) return;
+    if (!editLink) return;
     try {
-      const updated = await linksApi.updateLink(editLinkModal.id, {
-        title: editTitle.trim(),
-        originalUrl: editOriginalUrl.trim(),
+      const updated = await linksApi.updateLink(editLink.id, {
+        title: editLink.title.trim(),
+        originalUrl: editLink.originalUrl.trim(),
       });
       setLinks((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
-      setEditLinkModal(null);
+      setEditLink(null);
       success('Link updated successfully');
     } catch {
       toastError('Failed to save changes');
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Short Links Directory
-          </h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Short Links Directory</h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Manage destinations, vanity aliases, rule conditions, and QR assets
           </p>
@@ -267,7 +244,6 @@ export function LinksListPage() {
       {/* Filter and Search Bar */}
       <Card className="p-4 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {/* Search input */}
           <div className="lg:col-span-2">
             <Input
               placeholder="Search by title, short code, or URL..."
@@ -280,81 +256,54 @@ export function LinksListPage() {
             />
           </div>
 
-          {/* Status filter */}
-          <div>
-            <Select
-              options={[
-                { value: 'all', label: 'All Statuses' },
-                { value: 'active', label: 'Active only' },
-                { value: 'expired', label: 'Expired' },
-                { value: 'disabled', label: 'Disabled' },
-              ]}
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as 'all' | 'active' | 'expired' | 'disabled');
-                setPage(1);
-              }}
-            />
-          </div>
+          <Select
+            options={[
+              { value: 'all', label: 'All Statuses' },
+              { value: 'active', label: 'Active only' },
+              { value: 'expired', label: 'Expired' },
+              { value: 'disabled', label: 'Disabled' },
+            ]}
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value as 'all' | 'active' | 'expired' | 'disabled');
+              setPage(1);
+            }}
+          />
 
-          {/* Campaign filter */}
-          <div>
-            <Select
-              options={[
-                { value: '', label: 'All Campaigns' },
-                ...campaigns.map((c) => ({ value: c.id, label: c.name })),
-              ]}
-              value={campaignFilter}
-              onChange={(e) => {
-                setCampaignFilter(e.target.value);
-                setPage(1);
-              }}
-            />
-          </div>
+          <Select
+            options={[{ value: '', label: 'All Campaigns' }, ...campaigns.map((c) => ({ value: c.id, label: c.name }))]}
+            value={campaignFilter}
+            onChange={(e) => {
+              setCampaignFilter(e.target.value);
+              setPage(1);
+            }}
+          />
 
-          {/* Sort selector */}
-          <div>
-            <Select
-              options={[
-                { value: 'latest', label: 'Sort: Most Recent' },
-                { value: 'clicks', label: 'Sort: Most Clicks' },
-                { value: 'title', label: 'Sort: Alphabetical' },
-              ]}
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'latest' | 'clicks' | 'title')}
-            />
-          </div>
+          <Select
+            options={[
+              { value: 'latest', label: 'Sort: Most Recent' },
+              { value: 'clicks', label: 'Sort: Most Clicks' },
+              { value: 'title', label: 'Sort: Alphabetical' },
+            ]}
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as 'latest' | 'clicks' | 'title')}
+          />
         </div>
 
-        {/* Bulk Action Strip when rows selected */}
+        {/* Bulk Action Bar */}
         {selectedIds.length > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-xl text-xs animate-in fade-in duration-150">
             <span className="font-semibold text-neutral-900 dark:text-neutral-100">
               {selectedIds.length} link{selectedIds.length > 1 ? 's' : ''} selected
             </span>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleBulkToggleStatus(true)}
-                className="text-xs bg-white dark:bg-slate-900"
-              >
+              <Button variant="outline" size="sm" onClick={() => handleBulkToggleStatus(true)} className="text-xs bg-white dark:bg-slate-900">
                 Enable
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleBulkToggleStatus(false)}
-                className="text-xs bg-white dark:bg-slate-900"
-              >
+              <Button variant="outline" size="sm" onClick={() => handleBulkToggleStatus(false)} className="text-xs bg-white dark:bg-slate-900">
                 Disable
               </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => setBulkDeleteConfirmOpen(true)}
-                className="text-xs"
-              >
+              <Button variant="danger" size="sm" onClick={() => setBulkDeleteOpen(true)} className="text-xs">
                 Delete Selected
               </Button>
             </div>
@@ -362,7 +311,7 @@ export function LinksListPage() {
         )}
       </Card>
 
-      {/* Links Data Presentation */}
+      {/* Links Presentation */}
       {isLoading ? (
         <Card className="divide-y divide-slate-100 dark:divide-slate-800">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -388,11 +337,7 @@ export function LinksListPage() {
               <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 select-none">
                 <tr>
                   <th className="py-3 px-4 w-10">
-                    <button
-                      onClick={handleSelectAll}
-                      className="cursor-pointer text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                      aria-label="Select all"
-                    >
+                    <button onClick={handleSelectAll} className="cursor-pointer text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label="Select all">
                       {selectedIds.length === paginatedLinks.length && paginatedLinks.length > 0 ? (
                         <CheckSquare className="w-4 h-4 text-neutral-900 dark:text-white" />
                       ) : (
@@ -411,7 +356,6 @@ export function LinksListPage() {
               <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800 text-neutral-700 dark:text-neutral-300">
                 {paginatedLinks.map((link) => {
                   const isSelected = selectedIds.includes(link.id);
-                  const isExpired = link.rules.expiresAt && new Date(link.rules.expiresAt) <= new Date();
 
                   return (
                     <tr
@@ -422,17 +366,7 @@ export function LinksListPage() {
                       )}
                     >
                       <td className="py-3 px-4">
-                        <button
-                          onClick={() => {
-                            if (isSelected) {
-                              setSelectedIds(selectedIds.filter((id) => id !== link.id));
-                            } else {
-                              setSelectedIds([...selectedIds, link.id]);
-                            }
-                          }}
-                          className="cursor-pointer text-neutral-400"
-                          aria-label={`Select ${link.shortCode}`}
-                        >
+                        <button onClick={() => toggleSelect(link.id)} className="cursor-pointer text-neutral-400" aria-label={`Select ${link.shortCode}`}>
                           {isSelected ? (
                             <CheckSquare className="w-4 h-4 text-neutral-900 dark:text-white" />
                           ) : (
@@ -449,35 +383,19 @@ export function LinksListPage() {
                           >
                             /{link.shortCode}
                           </Link>
-                          {link.rules.password && (
-                            <span className="text-[10px] text-slate-400" title="Password protected">
-                              🔒
-                            </span>
-                          )}
+                          {link.rules.password && <span className="text-[10px] text-slate-400" title="Password protected">🔒</span>}
                         </div>
-                        <p className="text-[11px] font-sans text-slate-500 font-normal truncate max-w-xs mt-0.5">
-                          {link.title}
-                        </p>
+                        <p className="text-[11px] font-sans text-slate-500 font-normal truncate max-w-xs mt-0.5">{link.title}</p>
                       </td>
 
-                      <td className="py-3 px-4 max-w-xs truncate font-mono text-[11px] text-slate-500">
-                        {link.originalUrl}
-                      </td>
+                      <td className="py-3 px-4 max-w-xs truncate font-mono text-[11px] text-slate-500">{link.originalUrl}</td>
 
                       <td className="py-3 px-4 text-right font-mono font-bold tabular-nums text-slate-900 dark:text-white">
                         {formatCompactNumber(link.clicksCount)}
                       </td>
 
                       <td className="py-3 px-4">
-                        {!link.isActive || link.abuseStatus === 'disabled' ? (
-                          <Badge variant="danger" size="sm">Disabled</Badge>
-                        ) : isExpired ? (
-                          <Badge variant="warning" size="sm">Expired</Badge>
-                        ) : link.rules.clickLimit && link.clicksCount >= link.rules.clickLimit ? (
-                          <Badge variant="warning" size="sm">Limit reached</Badge>
-                        ) : (
-                          <Badge variant="success" size="sm">Active</Badge>
-                        )}
+                        <LinkStatusBadge link={link} />
                       </td>
 
                       <td className="py-3 px-4 text-slate-400 text-[11px] font-mono">
@@ -491,15 +409,11 @@ export function LinksListPage() {
                             className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 cursor-pointer"
                             title="Copy short link"
                           >
-                            {copiedId === link.id ? (
-                              <Check className="w-4 h-4 text-neutral-900 dark:text-white" />
-                            ) : (
-                              <Copy className="w-4 h-4" />
-                            )}
+                            {copiedId === link.id ? <Check className="w-4 h-4 text-neutral-900 dark:text-white" /> : <Copy className="w-4 h-4" />}
                           </button>
 
                           <button
-                            onClick={() => setQrModalLink(link)}
+                            onClick={() => setQrLink(link)}
                             className="p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-500 cursor-pointer"
                             title="Quick QR Preview"
                           >
@@ -507,7 +421,7 @@ export function LinksListPage() {
                           </button>
 
                           <button
-                            onClick={() => handleOpenEdit(link)}
+                            onClick={() => setEditLink({ id: link.id, shortCode: link.shortCode, title: link.title, originalUrl: link.originalUrl })}
                             className="p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-500 cursor-pointer"
                             title="Edit link title/URL"
                           >
@@ -526,7 +440,7 @@ export function LinksListPage() {
                           </button>
 
                           <button
-                            onClick={() => setDeleteConfirmId(link.id)}
+                            onClick={() => setDeleteId(link.id)}
                             className="p-1.5 rounded hover:bg-red-100 dark:hover:bg-red-950/40 text-neutral-400 hover:text-red-600 cursor-pointer"
                             title="Delete link"
                           >
@@ -553,22 +467,14 @@ export function LinksListPage() {
                     >
                       /{link.shortCode}
                     </Link>
-                    <h4 className="text-xs font-semibold text-slate-900 dark:text-white truncate mt-0.5">
-                      {link.title}
-                    </h4>
+                    <h4 className="text-xs font-semibold text-slate-900 dark:text-white truncate mt-0.5">{link.title}</h4>
                   </div>
                   <div className="shrink-0">
-                    {!link.isActive ? (
-                      <Badge variant="danger" size="sm">Disabled</Badge>
-                    ) : (
-                      <Badge variant="success" size="sm">Active</Badge>
-                    )}
+                    <LinkStatusBadge link={link} />
                   </div>
                 </div>
 
-                <p className="font-mono text-[11px] text-slate-500 truncate">
-                  {link.originalUrl}
-                </p>
+                <p className="font-mono text-[11px] text-slate-500 truncate">{link.originalUrl}</p>
 
                 <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-800 text-slate-500">
                   <span className="font-mono font-bold text-slate-900 dark:text-white">
@@ -576,28 +482,13 @@ export function LinksListPage() {
                   </span>
 
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleCopy(link.id, link.shortCode)}
-                      className="h-8 px-2"
-                    >
+                    <Button variant="outline" size="sm" onClick={() => handleCopy(link.id, link.shortCode)} className="h-8 px-2">
                       {copiedId === link.id ? 'Copied' : 'Copy'}
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setQrModalLink(link)}
-                      className="h-8 px-2"
-                    >
+                    <Button variant="outline" size="sm" onClick={() => setQrLink(link)} className="h-8 px-2">
                       QR
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDeleteConfirmId(link.id)}
-                      className="h-8 px-2 text-rose-600"
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => setDeleteId(link.id)} className="h-8 px-2 text-rose-600">
                       Delete
                     </Button>
                   </div>
@@ -609,28 +500,17 @@ export function LinksListPage() {
           {/* Pagination Footer */}
           <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
             <span>
-              Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filteredLinks.length)} of{' '}
-              {filteredLinks.length} links
+              Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filteredLinks.length)} of {filteredLinks.length} links
             </span>
 
             <div className="flex items-center gap-1.5">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage(page - 1)}
-              >
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
                 Previous
               </Button>
               <span className="px-2 font-mono">
                 {page} / {totalPages}
               </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= totalPages}
-                onClick={() => setPage(page + 1)}
-              >
+              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
                 Next
               </Button>
             </div>
@@ -638,49 +518,36 @@ export function LinksListPage() {
         </Card>
       )}
 
-      {/* QR Code Quick Modal */}
-      {qrModalLink && (
+      {/* QR Code Modal */}
+      {qrLink && (
         <Modal
-          isOpen={!!qrModalLink}
-          onClose={() => setQrModalLink(null)}
-          title={`QR Code: /${qrModalLink.shortCode}`}
+          isOpen={!!qrLink}
+          onClose={() => setQrLink(null)}
+          title={`QR Code: /${qrLink.shortCode}`}
           description="Vector QR asset configured for print and mobile scanning"
         >
           <div className="flex flex-col items-center justify-center p-6 space-y-4">
             <div className="p-4 bg-white rounded-xl shadow-xs border border-slate-200">
-              <QRCodeSVG
-                value={`${getBaseShortUrl()}/r/${qrModalLink.shortCode}?src=qr`}
-                size={180}
-              />
+              <QRCodeSVG value={`${getBaseShortUrl()}/r/${qrLink.shortCode}?src=qr`} size={180} />
             </div>
-            <p className="text-xs text-slate-500 text-center font-mono">
-              Scans automatically track with source=qr
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  navigate(`/app/qr?linkId=${qrModalLink.id}`);
-                }}
-              >
-                Open in QR Studio
-              </Button>
-            </div>
+            <p className="text-xs text-slate-500 text-center font-mono">Scans automatically track with source=qr</p>
+            <Button variant="outline" size="sm" onClick={() => navigate(`/app/qr?linkId=${qrLink.id}`)}>
+              Open in QR Studio
+            </Button>
           </div>
         </Modal>
       )}
 
       {/* Edit Link Modal */}
-      {editLinkModal && (
+      {editLink && (
         <Modal
-          isOpen={!!editLinkModal}
-          onClose={() => setEditLinkModal(null)}
+          isOpen={!!editLink}
+          onClose={() => setEditLink(null)}
           title="Edit Link Configuration"
-          description={`Updating settings for /${editLinkModal.shortCode}`}
+          description={`Updating settings for /${editLink.shortCode}`}
           footer={
             <>
-              <Button variant="outline" size="sm" onClick={() => setEditLinkModal(null)}>
+              <Button variant="outline" size="sm" onClick={() => setEditLink(null)}>
                 Cancel
               </Button>
               <Button variant="primary" size="sm" onClick={handleSaveEdit}>
@@ -692,14 +559,14 @@ export function LinksListPage() {
           <form onSubmit={handleSaveEdit} className="space-y-4">
             <Input
               label="Title / Display Label"
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
+              value={editLink.title}
+              onChange={(e) => setEditLink({ ...editLink, title: e.target.value })}
               required
             />
             <Input
               label="Destination Target URL"
-              value={editOriginalUrl}
-              onChange={(e) => setEditOriginalUrl(e.target.value)}
+              value={editLink.originalUrl}
+              onChange={(e) => setEditLink({ ...editLink, originalUrl: e.target.value })}
               required
             />
           </form>
@@ -708,8 +575,8 @@ export function LinksListPage() {
 
       {/* Single Delete Confirm Dialog */}
       <ConfirmDialog
-        isOpen={!!deleteConfirmId}
-        onClose={() => setDeleteConfirmId(null)}
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
         onConfirm={handleDeleteConfirm}
         title="Delete Short Link"
         message="Are you sure you want to permanently delete this short link? All associated redirect routes and telemetry will be removed."
@@ -719,8 +586,8 @@ export function LinksListPage() {
 
       {/* Bulk Delete Confirm Dialog */}
       <ConfirmDialog
-        isOpen={bulkDeleteConfirmOpen}
-        onClose={() => setBulkDeleteConfirmOpen(false)}
+        isOpen={bulkDeleteOpen}
+        onClose={() => setBulkDeleteOpen(false)}
         onConfirm={handleBulkDelete}
         title="Delete Selected Links"
         message={`Are you sure you want to delete ${selectedIds.length} links? This action is permanent and cannot be undone.`}

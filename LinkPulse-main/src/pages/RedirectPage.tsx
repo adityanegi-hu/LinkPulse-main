@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import {
   Link2,
@@ -10,8 +10,8 @@ import {
   ExternalLink,
   CheckCircle2,
 } from 'lucide-react';
-import { linksApi, clicksApi, adminApi } from '../lib/api';
-import { evaluateRedirectRules, RedirectEvaluationResult } from '../lib/utils';
+import { linksApi } from '../lib/api';
+import { RedirectEvaluationResult } from '../lib/utils';
 import { Link as LinkType } from '../types';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -27,8 +27,6 @@ export function RedirectPage() {
 
   // Password challenge
   const [passwordInput, setPasswordInput] = useState('');
-  const [countdown, setCountdown] = useState(2);
-  const clickLoggedRef = useRef(false);
 
   useEffect(() => {
     async function resolveRedirect() {
@@ -312,7 +310,7 @@ export function RedirectPage() {
 
           <div className="py-1">
             <span className="font-mono text-xs font-semibold px-3 py-1 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100">
-              Redirecting in {countdown}s
+              Redirecting...
             </span>
           </div>
 
